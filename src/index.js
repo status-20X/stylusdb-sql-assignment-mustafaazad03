@@ -195,7 +195,7 @@ function applyGroupBy(data, groupByFields, aggregateFunctions) {
 }
 
 async function executeSELECTQuery(query) {
-    const { fields, table, whereClauses, joinType, joinTable, joinCondition, groupByFields, hasAggregateWithoutGroupBy, orderByFields } = parseQuery(query);
+    const { fields, table, whereClauses, joinType, joinTable, joinCondition, groupByFields, hasAggregateWithoutGroupBy, orderByFields, limit } = parseQuery(query);
     let data = await readCSV(`src/CSVs/${table}.csv`);
 
     // Perform INNER JOIN if specified
@@ -225,8 +225,6 @@ async function executeSELECTQuery(query) {
         // Special handling for queries like 'SELECT COUNT(*) FROM table'
         const result = {};
 
-        // console.log({ filteredData })
-
         fields.forEach(field => {
             const match = /(\w+)\((\*|\w+)\)/.exec(field);
             if (match) {
@@ -247,8 +245,7 @@ async function executeSELECTQuery(query) {
                     case 'MAX':
                         result[field] = Math.max(...filteredData.map(row => parseFloat(row[aggField])));
                         break;
-                    default:
-                        throw new Error(`Unsupported aggregate function: ${aggFunc}`);
+                    // Additional aggregate functions can be handled here
                 }
             }
         });
@@ -269,6 +266,9 @@ async function executeSELECTQuery(query) {
                 return 0;
             });
         }
+        if (limit !== null) {
+            groupResults = groupResults.slice(0, limit);
+        }
         return groupResults;
     } else {
 
@@ -282,6 +282,10 @@ async function executeSELECTQuery(query) {
                 }
                 return 0;
             });
+        }
+
+        if (limit !== null) {
+            orderedResults = orderedResults.slice(0, limit);
         }
 
         // Select the specified fields
