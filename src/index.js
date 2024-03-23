@@ -94,6 +94,13 @@ function evaluateCondition(row, clause) {
     const rowValue = parseValue(row[field]);
     let conditionValue = parseValue(value);
 
+    if (operator === 'LIKE') {
+        // Transform SQL LIKE pattern to JavaScript RegExp pattern
+        const regexPattern = '^' + value.replace(/%/g, '.*').replace(/_/g, '.') + '$';
+        const regex = new RegExp(regexPattern, 'i'); // 'i' for case-insensitive matching
+        return regex.test(row[field]);
+    }
+
     switch (operator) {
         case '=': return rowValue === conditionValue;
         case '!=': return rowValue !== conditionValue;
@@ -197,7 +204,7 @@ function applyGroupBy(data, groupByFields, aggregateFunctions) {
 async function executeSELECTQuery(query) {
     try {
 
-        const { fields, table, whereClauses, joinType, joinTable, joinCondition, groupByFields, hasAggregateWithoutGroupBy, orderByFields, limit } = parseQuery(query);
+        const { fields, table, whereClauses, joinType, joinTable, joinCondition, groupByFields, hasAggregateWithoutGroupBy, orderByFields, limit, isDistinct } = parseQuery(query);
         let data = await readCSV(`src/CSVs/${table}.csv`);
 
         // Perform INNER JOIN if specified
@@ -286,12 +293,8 @@ async function executeSELECTQuery(query) {
                 });
             }
 
-            if (limit !== null) {
-                orderedResults = orderedResults.slice(0, limit);
-            }
-
             // Select the specified fields
-            return orderedResults.map(row => {
+            let finalResults = orderedResults.map(row => {
                 const selectedRow = {};
                 fields.forEach(field => {
                     // Assuming 'field' is just the column name without table prefix
@@ -299,6 +302,21 @@ async function executeSELECTQuery(query) {
                 });
                 return selectedRow;
             });
+
+            // Remove duplicates if specified
+            let distinctResults = finalResults;
+            if (isDistinct) {
+                distinctResults = [...new Map(finalResults.map(item => [fields.map(field => item[field]).join('|'), item])).values()];
+            }
+
+            let limitResults = distinctResults;
+            if (limit !== null) {
+                limitResults = distinctResults.slice(0, limit);
+            }
+
+            return limitResults;
+
+
         }
     } catch (error) {
         throw new Error(`Error executing query: ${error.message}`);
