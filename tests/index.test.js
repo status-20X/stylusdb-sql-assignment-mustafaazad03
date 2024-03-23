@@ -1,5 +1,5 @@
-const { executeSELECTQuery, readCSV } = require('../../src');
-const { parseJoinClause, parseSelectQuery } = require('../../src/queryParser');
+const { executeSELECTQuery, readCSV } = require('../src');
+const { parseJoinClause, parseSelectQuery } = require('../src/queryParser');
 
 test('Read CSV File', async () => {
     const data = await readCSV('./student.csv');

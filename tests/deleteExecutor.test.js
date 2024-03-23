@@ -1,5 +1,4 @@
-const { executeDELETEQuery } = require('../../src/queryExecuter');
-const { readCSV, writeCSV } = require('../../src/csvStorage');
+const { executeDELETEQuery, writeCSV, readCSV } = require('../src');
 const fs = require('fs');
 
 // Helper function to create courses.csv with initial data
